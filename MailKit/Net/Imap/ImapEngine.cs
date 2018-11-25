@@ -147,6 +147,8 @@ namespace MailKit.Net.Imap {
 		internal int Tag;
 		bool disposed;
 
+		internal bool notifySelectedNewExpunge;
+
 		static ImapEngine ()
 		{
 			UTF8 = Encoding.GetEncoding (65001, new EncoderExceptionFallback (), new DecoderExceptionFallback ());
@@ -1256,7 +1258,9 @@ namespace MailKit.Net.Imap {
 			foreach (var code in ic.RespCodes) {
 				if (code.Type == ImapResponseCodeType.Alert) {
 					OnAlert (code.Message);
-					break;
+				}
+				if (code.Type == ImapResponseCodeType.NotificationOverflow) {
+					OnNotificationOverflow ();
 				}
 			}
 		}
@@ -2530,6 +2534,21 @@ namespace MailKit.Net.Imap {
 
 			if (handler != null)
 				handler (this, new AlertEventArgs (message));
+		}
+
+		/// <summary>
+		/// Occurs when the engine receives a notification overflow message from the server.
+		/// </summary>
+		public event EventHandler<EventArgs> NotificationOverflow;
+
+		internal void OnNotificationOverflow ()
+		{
+			notifySelectedNewExpunge = false; // [NOTIFICATIONOVERFLOW] will reset to NOTIFY NONE
+
+			var handler = NotificationOverflow;
+
+			if (handler != null)
+				handler (this, new EventArgs ());
 		}
 
 		public event EventHandler<EventArgs> Disconnected;
